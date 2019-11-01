@@ -1,0 +1,185 @@
+/* Assignment 4 Simple SQL Queries   Aki Otsuka */
+
+/*Q1. List all condos in building C, the date they were cleaned, 
+	and the full name of the staff who cleaned them in August */
+
+Select co.UnitNum,co.bldg#, cl.Datecleaned, p.FName,p.LName
+	From Condos CO, cleaning Cl, personnel P, housekeeping H
+		Where CO.condo#=Cl.condo# and Cl.HKID=h.HKID and H.HKID = P.PID 
+		and co.bldg# = 'C' and month(Cl.dateCleaned)='08';
+------------------------------------------------------------------
+/*Q2. Display the activities reserved in June for more than 3 people. 
+Include the activity description and label the output as Activities Reserved in June.*/
+Select A.description as "Activities Reserved in June", r.NumberInParty
+	From activities A, Reservations R
+		Where A.AID = R.AID And r.NumberInParty >= 3 ;
+-------------------------------------------------------------------
+/* Q3. List all guides who have not renewed their certifications this year. 
+Include ID, full name, and number of days overdue. */
+
+Select p.FName, p.lname, g.certdate, g.certrenewdate
+	from personnel p, guides g
+		where p.pid=g.gid and g.certrenewdate < '2019-10-14';
+-------------------------------------------------------------------
+/* Q4. Management needs the names of all guides who lead an activity 
+with an expired certificate. Display the guide's full name, 
+the certificate renewal date, and the date and description of the ‘activity’.*/
+
+Select p.FName, p.lname, g.certrenewdate,a.Description, r.RDate
+	from personnel p, guides g, RESERVATIONS r, ACTIVITIES a
+		where p.pid=g.gid and g.certrenewdate < '2019-10-14'
+		and r.RDate > g.CertRenewDate;
+-------------------------------------------------------------------
+/* Q5. We need the date and full names of all boys (children) who went rafting.
+ List by family name within date.*/
+
+ select r.RDate, f.FName, g.RLName, f.Relationship, a.Type , 
+ (2019 - year(f.Birthdate)) as "age"
+	from guests g, FAMILIES f, RESERVATIONS r, ACTIVITIES a
+		where a.AID=r.AID and r.Guest#=g.Guest# and g.Guest#=f.Guest# 
+		and a.type Like '%Rafting%' and f.Relationship = 'son'
+			order by 1,3;
+-------------------------------------------------------------------
+/* Q6. How many rafting trips were taken this year?
+ Label the output, Rafting Trips.*/
+
+ select year(r.rdate) as "Year", count(a.type) as "Rafting Trips", a.type
+	from guests g, RESERVATIONS r, ACTIVITIES a
+		where a.AID=r.AID and r.Guest#=g.Guest# 
+		and a.Type = 'rafting'
+			group by year(r.rdate), a.Type ;
+-------------------------------------------------------------------
+/* 7. (9) List the first and last names and ages of all children 
+who are 7, 9, and 14 years of age. 
+Include the building and unit number of the condo 
+ which they are staying the week of July 27th. 
+Display oldest children first. */
+
+select f.FName, g.rlname, (2019-year(f.birthdate)) as "Age",
+c.Bldg#,c.UnitNum, cs.StartDate, cs.EndDate
+	from guests g, FAMILIES f, CONDOSTAYS cs, CONDOS c
+		where g.guest#=f.Guest# and g.guest#=cs.Guest# and cs.Condo#=c.Condo#
+			and (2019-year(f.birthdate)) In (7,9,14) 
+			and cs.StartDate between '2019-07-27' And '2019-08-02'
+				order by 3 Desc;
+-------------------------------------------------------------------
+/* Q8. Management needs a listing of all 3-bed, 2-bath units 
+at the resort that were occupied June 29th week. 
+Include building, condo, and unit number. 
+Order by unit number within each building.*/
+
+select c.bldg#, c.Condo#, c.UnitNum, c.Bdrms, c.Baths, cs.StartDate, cs.EndDate
+	from CONDOS c, CONDOSTAYS cs
+		where c.Condo# = cs.Condo# and c.Bdrms = 3 and c.Baths=2 
+		and cs.StartDate between '2019-06-29' And '2019-07-05'
+				order by 1,3;
+-------------------------------------------------------------------
+/* Q9. What is the most number of days, the least number of days, 
+and the average number of days our employees have been with the resort? 
+Label all columns Most Days Employed, Least Days Employed 
+and Average Days Employed.*/
+
+select max(datediff(day,hiredate,GETDATE())) "Most Days Employed",
+min(datediff(day,hiredate,GETDATE())) "Least Days Employed",
+avg(datediff(day,hiredate,GETDATE())) "Average Days Employed"
+	 from PERSONNEL;
+		
+-------------------------------------------------------------------
+/* Q10. For each manager, list their last name (Manager)
+ and hiredate and the last names and 
+ hiredates of all employees (Employee) working under them. 
+List by the manager's last name.*/
+
+Select m.LName "Manager", p.FName "Employee first Name", 
+p.LName "Employee Last Name"
+	from PERSONNEL p, PERSONNEL m
+		Where p.mgr# = m.PID
+			Order By 1;
+-------------------------------------------------------------------
+
+/* Q11. Management wants a list of first and last names of all employees 
+and the number of months they've been with the company (Months Employed). 
+List the newest employees first.*/
+
+select FName, LName, DATEDIFF(month, Hiredate,GETDATE()) 
+as "Months Employed"
+	from PERSONNEL
+		order by 3;
+-------------------------------------------------------------------
+/* Q12. What is the average total cost of all reservations this year?
+ Show the cost in 2 decimal places. Label the output,
+  Average Total Cost in 2017. Use the cast clause.*/
+
+ select  cast(avg(r.numberinparty * a.ppp) as decimal(6,2)) 
+ as "Average Total Cost in 2019"
+	from RESERVATIONS r, ACTIVITIES a
+		where year(r.rdate) = 2019;
+-------------------------------------------------------------------
+/* Q13. What were the total revenues for activities this year?
+ Display the output as, Total Activity Revenues.*/
+
+ select sum(r.numberinparty * ppp) as "Total Activity Revenues"
+	from RESERVATIONS r, ACTIVITIES a
+		where year(r.RDate) = 2019;
+-------------------------------------------------------------------
+/* Q14. The guests in condo A105 want to reserve an activity 
+but lost the activities brochure that was provided in their condo.
+They remembered that Eagle was in the description, 
+but cannot recall anything else. 
+List the information for all specified activities for the guests
+ so that they can make their plans.*/
+
+ select *
+	from ACTIVITIES
+		where Description like '%eagle%';
+-------------------------------------------------------------------
+/* Q15. One of our guests left their tablet in condo 6 on June 8th
+ (checkout). We need to call and get the address 
+ so that it can be returned. 
+ Look up the full name, spouse's name, and phone number. 
+ Maybe we can catch them before they leave the area.*/
+
+ select c.UnitNum, c.Bldg#, cs.EndDate, g.RFName, g.SpouseFName,g.RLName, 
+ g.Phone, cs.Condo#
+	from CONDOS c,CONDOSTAYS cs, GUESTS g
+		where c.Condo#=cs.Condo# and cs.Guest#=g.Guest# 
+		 and cs.EndDate = '2019-06-08'and cs.Condo# = 6 ;
+-------------------------------------------------------------------
+/* Q16. Which employees have guided reservations for more than 5 people?
+Include the guide's full name.*/
+
+select p.FName, p.LName,r.NumberInParty
+	from RESERVATIONS r, GUIDES g, PERSONNEL p
+		where r.GID=g.GID and g.GID=p.PID and r.NumberInParty > 5
+		order by 2;
+-------------------------------------------------------------------
+/* Q17. For all activities completed in June, 
+display the name of the activity (Activity), 
+the guide's last name (Guide), the guest's last name (Guest), 
+and the building and unit number where the guest stayed. 
+List by activity.*/
+
+select a.type, a.Description, p.LName as "Guide", gs.RLName as "Guest", 
+c.Bldg#, c.UnitNum, r.RDate
+	from ACTIVITIES a, RESERVATIONS r, GUIDES gd, 
+	GUESTS gs, CONDOSTAYS cs, CONDOS c, PERSONNEL p
+		where a.AID=r.AID and r.GID=gd.gid and gd.GID= p.pid 
+		and r.Guest#= gs.guest# and gs.guest#=cs.Guest# 
+		and cs.Condo# = c.Condo# and month(r.rdate) = '06'
+			order by 1;
+-------------------------------------------------------------------
+/* Q18. Some condo fees are increasing.
+ All 3-bed, 2-bath condos have increased 8% 
+ in the price of the weekly stay. 
+ Make the changes in the database first, 
+ and then show the price increase of those condos affected 
+ by this price increase. (Use one screenshot only). 
+ Attempt this question after all prior questions are completed.*/
+
+ UPDATE CONDOS
+	SET WeeklyFee = WeeklyFee * 1.08
+		WHERE Bdrms = 3 and Baths = 2 ;
+	
+select *
+	from CONDOS
+		where Bdrms = 3 and Baths = 2;
